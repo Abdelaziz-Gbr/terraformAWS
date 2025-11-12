@@ -1,0 +1,119 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  serviceAccountName: jenkins
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sleep
+    args:
+    - "9999999"
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  - name: aws-cli
+    image: amazon/aws-cli:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret
+    emptyDir: {}
+'''
+        }
+    }
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        ECR_REPOSITORY_URL = '579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo'
+        IMAGE_TAG = "build-${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/mahmoud254/jenkins_nodejs_example'
+            }
+        }
+
+        stage('Setup ECR Authentication') {
+            steps {
+                container('aws-cli') {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-key']]) {
+                        script {
+                            echo "=== Setting up ECR Authentication ==="
+                            sh '''
+                                mkdir -p /kaniko/.docker
+
+                                PASSWORD=$(aws ecr get-login-password --region ${AWS_REGION})
+                                cat > /kaniko/.docker/config.json <<EOF
+{
+  "auths": {
+    "${ECR_REPOSITORY_URL}": {
+      "auth": "$(echo -n AWS:${PASSWORD} | base64 -w 0)"
+    }
+  }
+}
+EOF
+                            '''
+                            echo "✅ ECR authentication configured"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build and Push Image') {
+            steps {
+                container('kaniko') {
+                    script {
+                        echo "=== Building and Pushing Image with Kaniko ==="
+                        sh """
+                            /kaniko/executor \
+                              --context=dir://. \
+                              --dockerfile=dockerfile \
+                              --destination=${ECR_REPOSITORY_URL}:latest \
+                              --cache=true \
+                              --verbosity=info
+                        """
+                        echo "✅ Images built and pushed to ECR:"
+                        echo "   - ${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
+                        echo "   - ${ECR_REPOSITORY_URL}:latest"
+                    }
+                }
+            }
+        }
+
+        stage('Summary') {
+            steps {
+                script {
+                    echo "=== Build Complete ==="
+                    echo "✅ Pipeline executed successfully"
+                    echo "📦 Repository: ${ECR_REPOSITORY_URL}"
+                    echo "🔖 Tag: ${IMAGE_TAG}"
+                    echo "🚀 Ready for deployment"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+    }
+}
