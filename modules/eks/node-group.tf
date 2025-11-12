@@ -19,7 +19,6 @@ resource "aws_iam_role" "eks_nodes" {
   }
 }
 
-# Attach required policies to Node Group Role
 resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role       = aws_iam_role.eks_nodes.name
@@ -30,7 +29,6 @@ resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
   role       = aws_iam_role.eks_nodes.name
 }
 
-#if you plan to pull container images from ECR -> if settled on pushing the image to docker hub you can skip this policy attachment
 resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_nodes.name
