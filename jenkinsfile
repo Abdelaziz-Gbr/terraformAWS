@@ -83,13 +83,12 @@ EOF
                             /kaniko/executor \
                               --context=dir://. \
                               --dockerfile=dockerfile \
-                              --destination=${ECR_REPOSITORY_URL}:latest \
+                              --destination=${ECR_REPOSITORY_URL}:${BUILD_NUMBER} \
                               --cache=true \
                               --verbosity=info
                         """
                         echo "✅ Images built and pushed to ECR:"
                         echo "   - ${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
-                        echo "   - ${ECR_REPOSITORY_URL}:latest"
                     }
                 }
             }
