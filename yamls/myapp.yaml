@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-test
+  namespace: default
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: myapp=579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp-test
+  template:
+    metadata:
+      labels:
+        app: myapp-test
+    spec:
+      containers:
+        - name: myapp
+          image: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:2
+          ports:
+            - containerPort: 80
