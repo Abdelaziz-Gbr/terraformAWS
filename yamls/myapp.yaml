@@ -1,20 +1,23 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: myapp-test
-  namespace: argocd
+  name: myapp
+  namespace: default
   annotations:
+    # Tell AIU which image to track
     argocd-image-updater.argoproj.io/image-list: myapp=579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo
+    # Update strategy - 'latest' will pick the newest tag
+    argocd-image-updater.argoproj.io/myapp.update-strategy: latest
 spec:
-  project: default
-  source:
-    repoURL: 'https://github.com/<your-repo>'
-    targetRevision: HEAD
-    path: path/to/deployment
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:2
