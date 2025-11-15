@@ -9,6 +9,7 @@ module "network"{
 }
 
 module "eks" {
+  depends_on = [module.network]
   source = "./modules/eks"
 
   cluster_name       = "my-cluster"
@@ -19,4 +20,37 @@ module "eks" {
   node_max_size      = 3
   node_min_size      = 1
   node_instance_types = ["t3.medium"]
+}
+
+resource "null_resource" "update_kubeconfig" {
+  depends_on = [module.eks]
+
+  provisioner "local-exec" {
+    command = "aws eks update-kubeconfig --name my-cluster --region us-east-1"
+  }
+}
+
+resource "helm_release" "argocd" {
+  name = "argocd"
+
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = "argocd"
+  create_namespace = true
+  version          = "3.35.4"
+
+  values = [file("values/argocd.yaml")]
+  depends_on = [module.eks, null_resource.update_kubeconfig]
+}
+resource "helm_release" "updater" {
+  name = "updater"
+
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argocd-image-updater"
+  namespace        = "argocd"
+  create_namespace = true
+  version          = "0.8.4"
+
+  values = [file("values/image-updater.yaml")]
+  depends_on = [module.eks, null_resource.update_kubeconfig]
 }

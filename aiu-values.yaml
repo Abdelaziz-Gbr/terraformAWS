@@ -1,0 +1,55 @@
+# ArgoCD Image Updater Helm Values
+# This enables annotation-based image updates on ArgoCD Applications
+
+config:
+  # Registries configuration for ECR
+  registries:
+    - name: ECR
+      api_url: https://579385932895.dkr.ecr.us-east-1.amazonaws.com
+      prefix: 579385932895.dkr.ecr.us-east-1.amazonaws.com
+      credentials: ext:/scripts/ecr-login.sh
+      # Use IRSA (no password needed, we attached the IAM policy)
+      default: true
+
+  # ArgoCD connection settings
+  argocd:
+    # Enable application scanning (CRITICAL!)
+    serverAddress: "argocd-server.argocd.svc.cluster.local"
+    insecure: true
+    plaintext: true
+
+  # Git write-back configuration
+  git:
+    user: "argocd-image-updater"
+    email: "argocd-image-updater@noreply.github.com"
+
+# Enable RBAC to read ArgoCD Applications
+serviceAccount:
+  create: true
+  name: argo-image-updater-argocd-image-updater
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::579385932895:role/eksctl-my-cluster-addon-iamserviceaccount-ar-Role1-xxxxx"
+
+# Controller configuration
+controller:
+  # IMPORTANT: Enable annotation-based scanning
+  args:
+    # Scan ArgoCD Applications for annotations
+    - --interval=2m
+    - --loglevel=debug
+    - --argocd-namespace=argocd
+    # Don't disable kubernetes (this enables annotation scanning)
+    # --disable-kubernetes is NOT set
+
+# Environment variables for git credentials
+env:
+  - name: GIT_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: argo-image-updater-git-creds
+        key: username
+  - name: GIT_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: argo-image-updater-git-creds
+        key: password
