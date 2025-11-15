@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: test
 
 replicas:
-  - name: myapp-Deployment
+  - name: myapp-deployment
     count: 2
 images:
   - name: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo
