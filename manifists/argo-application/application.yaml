@@ -15,7 +15,7 @@ spec:
   source:
     repoURL: ssh://git@github.com/Abdelaziz-Gbr/terraformAWS.git
     targetRevision: main
-    path: manifists/environements/test/my-app
+    path: manifists/environments/test/my-app
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
