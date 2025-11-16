@@ -51,6 +51,6 @@ resource "helm_release" "updater" {
   create_namespace = true
   version          = "1.0.1"
 
-  values = [file("values/image-updater.yaml")]
+  #values = [file("values/image-updater.yaml")]
   depends_on = [helm_release.argocd]
 }

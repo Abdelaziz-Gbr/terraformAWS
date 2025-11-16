@@ -5,3 +5,11 @@ image:
 metrics:
   enabled: true
 
+
+config:
+  registries:
+    - name: ecr
+      api_url: "579385932895.dkr.ecr.us-east-1.amazonaws.com"
+      ping: true
+      credentials: "secret:argocd/ecr-secret#username=AWS,password"
+      default: true
