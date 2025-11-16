@@ -29,7 +29,18 @@ resource "null_resource" "update_kubeconfig" {
     command = "aws eks update-kubeconfig --name my-cluster --region us-east-1"
   }
 }
+resource "helm_release" "jenkins" {
+  name       = "jenkins"
+  repository = "https://charts.jenkins.io"
+  chart      = "jenkins"
+  namespace  = "jenkins"
+  create_namespace = true
 
+  values = [
+    file("values/jenkins-values.yaml")
+  ]
+  depends_on = [null_resource.update_kubeconfig]
+}
 resource "helm_release" "argocd" {
   name = "argocd"
 
@@ -37,10 +48,9 @@ resource "helm_release" "argocd" {
   chart            = "argo-cd"
   namespace        = "argocd"
   create_namespace = true
-  version          = "3.35.4"
 
   values = [file("values/argocd.yaml")]
-  depends_on = [null_resource.update_kubeconfig]
+  depends_on = [helm_release.jenkins]
 }
 resource "helm_release" "updater" {
   name = "updater"
@@ -48,9 +58,8 @@ resource "helm_release" "updater" {
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argocd-image-updater"
   namespace        = "argocd"
-  create_namespace = true
-  version          = "1.0.1"
 
   #values = [file("values/image-updater.yaml")]
   depends_on = [helm_release.argocd]
 }
+

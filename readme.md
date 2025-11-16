@@ -49,3 +49,9 @@ use port-forward to access argo-cd web ui:
 apply argo application
   'kubectl apply -f manifists/argo-application/application.yaml
 
+kubectl create secret docker-registry ecr-secret \
+  --docker-server=579385932895.dkr.ecr.us-east-1.amazonaws.com \
+  --docker-username=AWS \
+  --docker-password="$(aws ecr get-login-password --region us-east-1)" \
+  -n argocd
+

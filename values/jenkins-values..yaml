@@ -1,0 +1,22 @@
+controller:
+  serviceType: LoadBalancer
+
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "1250m"
+      memory: "4Gi"
+
+  installPlugins:
+    - aws-credentials
+    - aws-java-sdk
+    - credentials
+    - workflow-aggregator
+    - git
+    - github
+
+persistence:
+  enabled: true
+  size: "3Gi"
