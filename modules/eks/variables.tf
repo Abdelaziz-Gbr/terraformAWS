@@ -36,3 +36,8 @@ variable "node_instance_types" {
   description = "The instance types for the EKS worker nodes."
   type        = list(string)
 }
+
+variable "oidc_provider_arn" {
+  description = "The ARN of the OIDC provider for the EKS cluster."
+  type        = string
+}
