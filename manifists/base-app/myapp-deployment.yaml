@@ -13,9 +13,7 @@ spec:
         app: myapp-deployment
     spec:
       containers:
-      - name: my-repo
+      - name: myapp
         image: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo
-        #imagePullSecrets:
-        #  - name: ecr-secret
         ports:
         - containerPort: 80
