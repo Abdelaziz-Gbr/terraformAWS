@@ -26,40 +26,6 @@ resource "null_resource" "update_kubeconfig" {
   depends_on = [module.eks]
 
   provisioner "local-exec" {
-    command = "aws eks update-kubeconfig --name my-cluster --region us-east-1"
+    command = "aws eks update-kubeconfig --name my-cluster --region us-east-1 && kubectl patch storageclass gp2 -p '{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'"
   }
 }
-resource "helm_release" "jenkins" {
-  name       = "jenkins"
-  repository = "https://charts.jenkins.io"
-  chart      = "jenkins"
-  namespace  = "jenkins"
-  create_namespace = true
-
-  values = [
-    file("values/jenkins-values.yaml")
-  ]
-  depends_on = [null_resource.update_kubeconfig]
-}
-resource "helm_release" "argocd" {
-  name = "argocd"
-
-  repository       = "https://argoproj.github.io/argo-helm"
-  chart            = "argo-cd"
-  namespace        = "argocd"
-  create_namespace = true
-
-  values = [file("values/argocd.yaml")]
-  depends_on = [helm_release.jenkins]
-}
-resource "helm_release" "updater" {
-  name = "updater"
-
-  repository       = "https://argoproj.github.io/argo-helm"
-  chart            = "argocd-image-updater"
-  namespace        = "argocd"
-
-  #values = [file("values/image-updater.yaml")]
-  depends_on = [helm_release.argocd]
-}
-
