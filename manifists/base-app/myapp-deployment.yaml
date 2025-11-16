@@ -15,7 +15,7 @@ spec:
       containers:
       - name: my-repo
         image: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo
-        imagePullSecrets:
-          - name: ecr-secret
+        #imagePullSecrets:
+        #  - name: ecr-secret
         ports:
         - containerPort: 80
