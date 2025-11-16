@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      serviceAccountName: ecr-access-sa
+      containers:
+      - name: my-app
+        image: 579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AWS_ROLE_ARN
+          value: arn:aws:iam::ACCOUNT_ID:role/my-cluster-eks-pods-ecr-access-role
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token

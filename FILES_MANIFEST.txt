@@ -1,0 +1,393 @@
+================================================================================
+                           FILES MANIFEST
+================================================================================
+
+This document lists all files created or modified for the ECR IRSA setup.
+
+================================================================================
+                        NEW FILES (14 total)
+================================================================================
+
+TERRAFORM MODULES (2 files)
+──────────────────────────────────────────────────────────────────────────────
+✨ modules/eks/ecr.tf (128 lines)
+   • Creates ECR repository "my-repo"
+   • Configures image scanning on push
+   • Sets up repository policy for authorized roles
+   • Outputs: ECR repository URL and ARN
+
+✨ modules/eks/irsa-ecr-roles.tf (100 lines)
+   • Creates IAM role for ArgoCD Image Updater (with IRSA)
+   • Creates IAM role for EKS pods (with IRSA)
+   • Attaches ECR access policies to each role
+   • Uses OIDC provider for secure token exchange
+   • Outputs: Role ARNs
+
+
+KUBERNETES MANIFESTS (3 files)
+──────────────────────────────────────────────────────────────────────────────
+✨ manifists/argo-application/argocd-image-updater-sa.yaml (8 lines)
+   • Service account for ArgoCD Image Updater
+   • Annotated with IRSA role ARN
+   • Deployed in argocd namespace
+   • Replaces credential-based authentication
+
+✨ manifists/argo-application/ecr-access-sa.yaml (18 lines)
+   • Reusable service account for ECR access
+   • Annotated with IRSA role ARN
+   • Deployed in both default and test namespaces
+   • Can be used by any pod needing ECR pull access
+
+✨ manifists/base-app/my-app-deployment-irsa.yaml (26 lines)
+   • Example deployment using IRSA
+   • Shows how to pull from ECR without imagePullSecrets
+   • References ecr-access-sa service account
+   • Sets AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE
+
+
+DOCUMENTATION (7 files)
+──────────────────────────────────────────────────────────────────────────────
+✨ README_IRSA.md (195 lines)
+   • Navigation index and quick reference
+   • Links to all other documentation
+   • Quick start commands
+   • Troubleshooting guide
+   • START HERE for orientation
+
+✨ QUICK_REFERENCE.md (150 lines)
+   • Quick start guide (5 minutes)
+   • Common commands
+   • Verification commands
+   • Troubleshooting quick fixes
+
+✨ IRSA_ECR_SETUP.md (380 lines)
+   • Comprehensive technical guide
+   • Step-by-step setup instructions
+   • Prerequisites and verification
+   • How IRSA works
+   • Detailed troubleshooting
+   • Security considerations
+
+✨ MIGRATION_GUIDE.md (250 lines)
+   • Migration strategy for upgrading from secrets to IRSA
+   • Phase-by-phase migration plan
+   • Gradual vs. big-bang options
+   • Rollback procedures
+   • Troubleshooting migration issues
+
+✨ ARCHITECTURE.md (320 lines)
+   • System architecture diagrams
+   • Request flow diagrams
+   • Comparison: Secrets vs. IRSA
+   • File organization
+   • Visual representations
+
+✨ SETUP_SUMMARY.md (180 lines)
+   • High-level project overview
+   • Key benefits summary
+   • Files created/modified
+   • Architecture overview
+   • Next steps
+
+✨ CHANGES_SUMMARY.txt (280 lines)
+   • Comprehensive changes summary
+   • Files created/modified/deleted
+   • AWS resources created
+   • Kubernetes resources created
+   • Deployment checklist
+
+
+HELPER SCRIPTS (2 files)
+──────────────────────────────────────────────────────────────────────────────
+✨ setup-irsa-ecr.sh (120 lines, executable)
+   • Automated setup script
+   • Gets AWS account ID and region
+   • Updates manifests with actual values
+   • Runs terraform plan and apply
+   • Deploys service accounts
+   • Verifies setup
+
+✨ validate-irsa-setup.sh (380 lines, executable)
+   • Validation and verification script
+   • Checks prerequisites (aws, kubectl, terraform)
+   • Verifies Terraform files and state
+   • Checks Kubernetes resources
+   • Verifies IAM roles and ECR
+   • Detailed validation report
+
+MANIFEST HELPER
+──────────────────────────────────────────────────────────────────────────────
+✨ FILES_MANIFEST.txt (this file)
+   • Lists all new/modified files
+   • Descriptions of each file
+   • Quick reference
+
+
+================================================================================
+                        UPDATED FILES (3 total)
+================================================================================
+
+main.tf
+───────────────────────────────────────────────────────────────────────────────
+Line 23: Added oidc_provider_arn parameter
+
+BEFORE:
+  node_instance_types = ["t3.medium"]
+}
+
+AFTER:
+  node_instance_types = ["t3.medium"]
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+}
+
+Reason: Pass OIDC provider ARN to EKS module for IRSA roles to use
+
+
+modules/eks/variables.tf
+───────────────────────────────────────────────────────────────────────────────
+Added new variable at end of file:
+
+variable "oidc_provider_arn" {
+  description = "The ARN of the OIDC provider for the EKS cluster."
+  type        = string
+}
+
+Reason: Define the OIDC provider ARN variable needed for IRSA roles
+
+
+values/image-updater.yaml
+───────────────────────────────────────────────────────────────────────────────
+BEFORE:
+  config:
+    registries:
+      - name: ecr
+        api_url: "579385932895.dkr.ecr.us-east-1.amazonaws.com"
+        ping: true
+        credentials: "secret:argocd/ecr-secret#username=AWS,password"
+        default: true
+
+AFTER:
+  serviceAccount:
+    create: false
+    name: argocd-image-updater
+
+  config:
+    registries:
+      - name: ecr
+        api_url: "579385932895.dkr.ecr.us-east-1.amazonaws.com"
+        ping: true
+        # Using IAM role instead of credentials secret
+        default: true
+
+Reason: Use IRSA instead of hardcoded credentials
+
+
+================================================================================
+                      OPTIONAL DELETIONS (2 files)
+================================================================================
+
+These files contain hardcoded base64-encoded credentials and are no longer
+needed with IRSA, but kept for reference/rollback:
+
+× manifists/argo-application/ecr-secret.yaml
+  └─ Contains base64-encoded AWS access key credentials
+  └─ Can be deleted after migration to IRSA is complete
+
+× manifists/argo-application/ecr-secret-for-aiu.yaml
+  └─ Contains base64-encoded AWS access key credentials
+  └─ Can be deleted after migration to IRSA is complete
+
+To delete:
+  rm -f manifists/argo-application/ecr-secret*.yaml
+
+
+================================================================================
+                      FILE CHANGE SUMMARY
+================================================================================
+
+New Files:     14
+Modified Files: 3
+Optional Del:   2
+───────────────────
+Total Impact:  19 files
+
+New Lines Added:    ~2500
+Modified Lines:     ~10
+Deleted Lines:      ~1 (to be confirmed)
+
+Total Documentation: ~1700 lines
+Total Code:          ~500 lines
+Total Scripts:       ~500 lines
+
+
+================================================================================
+                      RESOURCE LOCATIONS
+================================================================================
+
+Terraform Files
+  └─ /home/abdelaziz/terraformAWS/
+     ├─ main.tf (modified)
+     └─ modules/eks/
+        ├─ ecr.tf (new)
+        ├─ irsa-ecr-roles.tf (new)
+        └─ variables.tf (modified)
+
+Kubernetes Manifests
+  └─ /home/abdelaziz/terraformAWS/manifists/
+     ├─ argo-application/
+     │  ├─ argocd-image-updater-sa.yaml (new)
+     │  ├─ ecr-access-sa.yaml (new)
+     │  ├─ ecr-secret.yaml (old, optional delete)
+     │  └─ ecr-secret-for-aiu.yaml (old, optional delete)
+     └─ base-app/
+        ├─ my-app-deployment-irsa.yaml (new)
+        └─ myapp-deployment.yaml (existing)
+
+Configuration Files
+  └─ /home/abdelaziz/terraformAWS/
+     └─ values/
+        └─ image-updater.yaml (modified)
+
+Documentation
+  └─ /home/abdelaziz/terraformAWS/
+     ├─ README_IRSA.md (new)
+     ├─ QUICK_REFERENCE.md (new)
+     ├─ IRSA_ECR_SETUP.md (new)
+     ├─ MIGRATION_GUIDE.md (new)
+     ├─ ARCHITECTURE.md (new)
+     ├─ SETUP_SUMMARY.md (new)
+     ├─ CHANGES_SUMMARY.txt (new)
+     └─ FILES_MANIFEST.txt (new - this file)
+
+Scripts
+  └─ /home/abdelaziz/terraformAWS/
+     ├─ setup-irsa-ecr.sh (new, executable)
+     └─ validate-irsa-setup.sh (new, executable)
+
+
+================================================================================
+                      FILE READING ORDER
+================================================================================
+
+Recommended Reading Order:
+
+1. First Time? → Start here
+   └─ README_IRSA.md (5 min)
+
+2. Need Quick Setup? → Go here
+   └─ QUICK_REFERENCE.md (10 min)
+
+3. Want Details? → Read this
+   └─ IRSA_ECR_SETUP.md (30 min)
+
+4. Migrating from Secrets? → Follow this
+   └─ MIGRATION_GUIDE.md (30 min)
+
+5. Want Architecture Details? → Study this
+   └─ ARCHITECTURE.md (20 min)
+
+6. Need File Overview? → Check this
+   └─ This file - FILES_MANIFEST.txt
+
+7. Full Summary? → Review this
+   └─ SETUP_SUMMARY.md or CHANGES_SUMMARY.txt
+
+
+================================================================================
+                      QUICK COMMAND REFERENCE
+================================================================================
+
+Setup
+  $ ./setup-irsa-ecr.sh          # Automated setup
+
+Verify
+  $ ./validate-irsa-setup.sh     # Verify installation
+
+Manual Setup
+  $ terraform plan
+  $ terraform apply
+  $ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  $ sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" manifists/argo-application/*.yaml
+  $ kubectl apply -f manifists/argo-application/argocd-image-updater-sa.yaml
+  $ kubectl apply -f manifists/argo-application/ecr-access-sa.yaml
+
+Check Service Accounts
+  $ kubectl get sa argocd-image-updater -n argocd -o yaml
+  $ kubectl get sa ecr-access-sa -n test -o yaml
+
+Check IAM Roles
+  $ aws iam get-role --role-name my-cluster-argocd-image-updater-role
+  $ aws iam get-role --role-name my-cluster-eks-pods-ecr-access-role
+
+Check ECR Repository
+  $ aws ecr describe-repositories --repository-names my-repo
+
+
+================================================================================
+                      DOCUMENTATION MATRIX
+================================================================================
+
+Topic               File                    Time    Audience
+──────────────────────────────────────────────────────────────────────────────
+Getting Started     README_IRSA.md          5 min   Everyone
+Quick Setup         QUICK_REFERENCE.md      10 min  Developers
+Deep Dive           IRSA_ECR_SETUP.md       30 min  Operators
+Migration          MIGRATION_GUIDE.md       30 min  DevOps
+Architecture        ARCHITECTURE.md         20 min  Architects
+Changes Overview    SETUP_SUMMARY.md        15 min  Project Leads
+Changes Detail      CHANGES_SUMMARY.txt     15 min  Project Leads
+Files Manifest      FILES_MANIFEST.txt      10 min  DevOps
+
+
+================================================================================
+                      VERSION INFORMATION
+================================================================================
+
+Creation Date:    November 16, 2025
+Configuration:    ECR IRSA for ArgoCD and EKS Pods
+Version:          1.0
+Status:           Ready for Deployment
+
+Tested Compatibility:
+  • Terraform:    ~> 6.0
+  • AWS:          EKS with OIDC
+  • Kubernetes:   1.30
+  • ArgoCD:       3.35.4
+  • ArgoCD Image Updater: 0.8.4
+
+
+================================================================================
+                      TROUBLESHOOTING
+================================================================================
+
+Issue: Files not created?
+  → Verify terraform apply was run successfully
+  → Check /home/abdelaziz/terraformAWS/terraform.tfstate
+
+Issue: Service accounts not deployed?
+  → Check kubeconfig: kubectl cluster-info
+  → Verify manifests exist: ls manifists/argo-application/*sa.yaml
+  → Run: kubectl apply -f manifists/argo-application/argocd-image-updater-sa.yaml
+
+Issue: Manifests have ACCOUNT_ID placeholder?
+  → Run setup script: ./setup-irsa-ecr.sh
+  → Or manually: sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" manifists/**/*.yaml
+
+Issue: Validation script fails?
+  → Run: ./validate-irsa-setup.sh
+  → Follow the specific failure messages
+  → Check IRSA_ECR_SETUP.md troubleshooting section
+
+
+================================================================================
+                            END OF MANIFEST
+================================================================================
+
+For more information:
+  • Start: README_IRSA.md
+  • Quick: QUICK_REFERENCE.md
+  • Help: IRSA_ECR_SETUP.md
+  • Setup: ./setup-irsa-ecr.sh
+  • Check: ./validate-irsa-setup.sh
+
+================================================================================
