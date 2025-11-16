@@ -5,14 +5,3 @@ image:
 metrics:
   enabled: true
 
-serviceAccount:
-  create: false
-  name: argocd-image-updater
-
-config:
-  registries:
-    - name: ecr
-      api_url: "579385932895.dkr.ecr.us-east-1.amazonaws.com"
-      ping: true
-      # Using IAM role instead of credentials secret
-      default: true

@@ -20,7 +20,6 @@ module "eks" {
   node_max_size      = 3
   node_min_size      = 1
   node_instance_types = ["t3.medium"]
-  oidc_provider_arn  = module.eks.oidc_provider_arn
 }
 
 resource "null_resource" "update_kubeconfig" {
@@ -41,7 +40,7 @@ resource "helm_release" "argocd" {
   version          = "3.35.4"
 
   values = [file("values/argocd.yaml")]
-  depends_on = [module.eks, null_resource.update_kubeconfig]
+  depends_on = [null_resource.update_kubeconfig]
 }
 resource "helm_release" "updater" {
   name = "updater"
@@ -50,8 +49,8 @@ resource "helm_release" "updater" {
   chart            = "argocd-image-updater"
   namespace        = "argocd"
   create_namespace = true
-  version          = "0.8.4"
+  version          = "1.0.1"
 
   values = [file("values/image-updater.yaml")]
-  depends_on = [module.eks, null_resource.update_kubeconfig]
+  depends_on = [helm_release.argocd]
 }
