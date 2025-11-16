@@ -55,3 +55,10 @@ kubectl create secret docker-registry ecr-secret \
   --docker-password="$(aws ecr get-login-password --region us-east-1)" \
   -n argocd
 
+create the application ns: 'k create ns test'
+
+create the secret needed to pull the image from ecr: 'k create secret docker-registry ecr-secret --docker-username="AWS" --docker-password=$"aws ecr get-login-password --region us-east-1" --docker-server="579385932895.dkr.ecr.us-east-1.amazonaws.com" -n test'
+
+create the same key but under argocd namespace so the image updater can access the ecr: 'k create secret docker-registry ecr-secret --docker-username="AWS" --docker-password=$"aws ecr get-login-password --region us-east-1" --docker-server="579385932895.dkr.ecr.us-east-1.amazonaws.com" -n argocd'
+
+create dockerhub secret so argocd-image-updater can access the repo and commit new tags: 'k apply -f manifists/secrets/github-secret.yaml'

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-app
+  name: myapp
   namespace: argocd
   annotations:
     argocd-image-updater.argoproj.io/image-list: my-repo=579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:~
@@ -16,7 +16,7 @@ spec:
   source:
     repoURL: ssh://git@github.com/Abdelaziz-Gbr/terraformAWS.git
     targetRevision: main
-    path: manifists/environments/test/my-app
+    path: manifists/environments/test/myapp
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
