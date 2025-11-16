@@ -1,0 +1,19 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: my-image-updater
+  namespace: argocd
+spec:
+  namespace: argocd
+  applicationRefs:
+    - namePattern: "my-app"
+      images:
+        - alias: "my-app-image"
+          imageName: "579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:1"
+  # Enable Git write-back
+  git:
+    writeBackMethod: commit          # commit changes to the repo
+    repoCredentialsSecretRef:
+      name: my-github-ssh-key            # secret holding SSH key
+      key: sshPrivateKey
+    branch: main                     # branch where ArgoCD tracks manifests
