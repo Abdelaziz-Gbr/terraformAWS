@@ -1,7 +1,8 @@
 config:
   registries:
-    - name: ecr
-      api_url: "579385932895.dkr.ecr.us-east-1.amazonaws.com"
-      ping: true
-      credentials: "secret:argocd/ecr-secret#username=AWS,password"
-      default: true
+  - name: ECR
+    prefix: 579385932895.dkr.ecr.us-east-1.amazonaws.com
+    api_url: https://579385932895.dkr.ecr.us-east-1.amazonaws.com
+    credentials: pullsecret:argocd/ecr-secret
+    defaultns: ""
+    default: true

@@ -3,6 +3,11 @@ kind: Application
 metadata:
   name: myapp
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: my-repo=579385932895.dkr.ecr.us-east-1.amazonaws.com/my-repo:~1
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/my-repo.pull-secret: secret:argocd/ecr-secret
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
